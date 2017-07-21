@@ -18,6 +18,7 @@ package com.readystatesoftware.chuck;
 import android.content.ContentValues;
 import android.content.Context;
 import android.net.Uri;
+import android.text.format.Formatter;
 import android.util.Log;
 
 import com.readystatesoftware.chuck.internal.data.ChuckContentProvider;
@@ -79,6 +80,7 @@ public final class ChuckInterceptor implements Interceptor {
     private RetentionManager retentionManager;
     private boolean showNotification;
     private long maxContentLength = 250000L;
+    private long thresholdLength = 500000L;
 
     /**
      * @param context The current Context.
@@ -112,7 +114,23 @@ public final class ChuckInterceptor implements Interceptor {
         this.maxContentLength = max;
         return this;
     }
-  
+
+    /**
+     * Set the maximum length for request and response content. Diffs from {@link #maxContentLength(long)},
+     * if request or response body is larger than threshold, data will not saved into database and Chuck will
+     * not display all the information in the UI.
+     *
+     * @param thresholdLength the maximum length (in bytes) for request/response content.
+     * @return The {@link ChuckInterceptor} instance.
+     */
+    public ChuckInterceptor thredsholdLength(long thresholdLength) {
+        if (thresholdLength > 1000000L) {
+            throw new IllegalArgumentException("too large threshold leads to severe consequences to Chuck database. Consider setting a smaller one!");
+        }
+        this.thresholdLength = thresholdLength;
+        return this;
+    }
+
     /**
      * Set the retention period for HTTP transaction data captured by this interceptor.
      * The default is one week.
@@ -158,7 +176,11 @@ public final class ChuckInterceptor implements Interceptor {
                 charset = contentType.charset(UTF8);
             }
             if (isPlaintext(buffer)) {
-                transaction.setRequestBody(readFromBuffer(buffer, charset));
+                if (thresholdLength > transaction.getRequestContentLength()) {
+                    transaction.setRequestBody(readFromBuffer(buffer, charset));
+                } else {
+                    transaction.setRequestBody(String.format("Too large (larger than %s) request body. Omitted!", Formatter.formatFileSize(context, thresholdLength)));
+                }
             } else {
                 transaction.setResponseBodyIsPlainText(false);
             }
@@ -192,6 +214,13 @@ public final class ChuckInterceptor implements Interceptor {
         }
         transaction.setResponseHeaders(response.headers());
 
+        //  Whether response body is plain text makes no sense. Response could be a large text file whose length is megabytes or even larger.
+        if (thresholdLength < transaction.getResponseContentLength()) {
+            transaction.setResponseBody(String.format("Too large (more than %s) response body. Omitted!", Formatter.formatFileSize(context, thresholdLength)));
+            update(transaction, transactionUri);
+            return response;
+        }
+
         transaction.setResponseBodyIsPlainText(!bodyHasUnsupportedEncoding(response.headers()));
         if (HttpHeaders.hasBody(response) && transaction.responseBodyIsPlainText()) {
             BufferedSource source = getNativeSource(response);
@@ -223,7 +252,7 @@ public final class ChuckInterceptor implements Interceptor {
     private Uri create(HttpTransaction transaction) {
         ContentValues values = LocalCupboard.getInstance().withEntity(HttpTransaction.class).toContentValues(transaction);
         Uri uri = context.getContentResolver().insert(ChuckContentProvider.TRANSACTION_URI, values);
-        transaction.setId(Long.valueOf(uri.getLastPathSegment()));
+        transaction.setId(Long.valueOf(uri == null ? "0" : uri.getLastPathSegment()));
         if (showNotification) {
             notificationHelper.show(transaction);
         }
