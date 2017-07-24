@@ -16,6 +16,7 @@
 package com.readystatesoftware.chuck.sample;
 
 import android.content.Context;
+import android.content.Intent;
 import android.os.Bundle;
 import android.support.annotation.Nullable;
 import android.support.v7.app.AppCompatActivity;
@@ -48,6 +49,12 @@ public class MainActivity extends AppCompatActivity {
                 launchChuckDirectly();
             }
         });
+        findViewById(R.id.launch_another_process).setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                launchActivityInAnotherProcess();
+            }
+        });
     }
 
     private OkHttpClient getClient(Context context) {
@@ -61,6 +68,10 @@ public class MainActivity extends AppCompatActivity {
     private void launchChuckDirectly() {
         // Optionally launch Chuck directly from your own app UI
         startActivity(Chuck.getLaunchIntent(this));
+    }
+
+    private void launchActivityInAnotherProcess() {
+        startActivity(new Intent(this, OtherProcessActivity.class));
     }
 
     private void doHttpActivity() {

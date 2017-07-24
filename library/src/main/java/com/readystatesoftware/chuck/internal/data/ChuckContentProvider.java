@@ -29,7 +29,7 @@ import android.support.annotation.Nullable;
 
 public class ChuckContentProvider extends ContentProvider {
 
-    public static Uri TRANSACTION_URI;
+    public static Uri TRANSACTION_URI = Uri.parse("content://com.readystatesoftware.chuck.sample.chuck.provider/transaction");
 
     private static final int TRANSACTION = 0;
     private static final int TRANSACTIONS = 1;
@@ -40,9 +40,8 @@ public class ChuckContentProvider extends ContentProvider {
     @Override
     public void attachInfo(Context context, ProviderInfo info) {
         super.attachInfo(context, info);
-        TRANSACTION_URI = Uri.parse("content://" + info.authority + "/transaction");
-        matcher.addURI(info.authority, "transaction/#", TRANSACTION);
-        matcher.addURI(info.authority, "transaction", TRANSACTIONS);
+        matcher.addURI("com.readystatesoftware.chuck.sample.chuck.provider", "transaction/#", TRANSACTION);
+        matcher.addURI("com.readystatesoftware.chuck.sample.chuck.provider", "transaction", TRANSACTIONS);
     }
 
     @Override

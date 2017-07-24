@@ -41,4 +41,14 @@
         android:layout_alignParentLeft="true"
         android:layout_alignParentStart="true"
         android:id="@+id/launch_chuck_directly" />
+
+    <Button
+        android:text="@string/launch_another_precess"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_below="@+id/launch_chuck_directly"
+        android:layout_alignParentLeft="true"
+        android:layout_alignParentStart="true"
+        android:id="@+id/launch_another_process" />
+
 </RelativeLayout>
